@@ -1,6 +1,6 @@
 """
 Alarm Model
-告警数据模型
+Alarm Data Model
 """
 
 from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, Text, Enum as SQLEnum
@@ -13,36 +13,36 @@ from app.core.database import BaseModel
 
 
 class AlarmType(str, enum.Enum):
-    """告警类型枚举"""
-    OVER_TEMPERATURE = "over_temperature"       # 超温
-    OVER_RPM = "over_rpm"                       # 超转速
-    OVER_VOLTAGE = "over_voltage"               # 超压
-    OVER_CURRENT = "over_current"               # 过流
-    COMMUNICATION_ERROR = "communication_error" # 通信异常
-    HEARTBEAT_TIMEOUT = "heartbeat_timeout"     # 心跳超时
-    CUSTOM = "custom"                           # 自定义
+    """Alarm Type Enum"""
+    OVER_TEMPERATURE = "over_temperature"       # Over Temperature
+    OVER_RPM = "over_rpm"                       # Over RPM
+    OVER_VOLTAGE = "over_voltage"               # Over Voltage
+    OVER_CURRENT = "over_current"               # Over Current
+    COMMUNICATION_ERROR = "communication_error" # Communication Error
+    HEARTBEAT_TIMEOUT = "heartbeat_timeout"     # Heartbeat Timeout
+    CUSTOM = "custom"                           # Custom
 
 
 class AlarmSeverity(str, enum.Enum):
-    """告警严重程度"""
-    LOW = "low"           # 低
-    MEDIUM = "medium"     # 中
-    HIGH = "high"         # 高
-    CRITICAL = "critical" # 严重
+    """Alarm Severity Enum"""
+    LOW = "low"           # Low
+    MEDIUM = "medium"     # Medium
+    HIGH = "high"         # High
+    CRITICAL = "critical" # Critical
 
 
-# 告警类型配置
+# Alarm Type Configuration
 ALARM_TYPE_CONFIG = {
-    AlarmType.OVER_TEMPERATURE: {"label": "超温告警", "icon": "🌡️"},
-    AlarmType.OVER_RPM: {"label": "超转速告警", "icon": "🔄"},
-    AlarmType.OVER_VOLTAGE: {"label": "超压告警", "icon": "⚡"},
-    AlarmType.OVER_CURRENT: {"label": "过流告警", "icon": "🔌"},
-    AlarmType.COMMUNICATION_ERROR: {"label": "通信异常", "icon": "📡"},
-    AlarmType.HEARTBEAT_TIMEOUT: {"label": "心跳超时", "icon": "💔"},
-    AlarmType.CUSTOM: {"label": "自定义告警", "icon": "⚠️"},
+    AlarmType.OVER_TEMPERATURE: {"label": "Over Temperature", "icon": "🌡️"},
+    AlarmType.OVER_RPM: {"label": "Over RPM", "icon": "🔄"},
+    AlarmType.OVER_VOLTAGE: {"label": "Over Voltage", "icon": "⚡"},
+    AlarmType.OVER_CURRENT: {"label": "Over Current", "icon": "🔌"},
+    AlarmType.COMMUNICATION_ERROR: {"label": "Communication Error", "icon": "📡"},
+    AlarmType.HEARTBEAT_TIMEOUT: {"label": "Heartbeat Timeout", "icon": "💔"},
+    AlarmType.CUSTOM: {"label": "Custom Alarm", "icon": "⚠️"},
 }
 
-# 严重程度颜色
+# Severity Colors
 SEVERITY_COLORS = {
     AlarmSeverity.LOW: "#fbbf24",
     AlarmSeverity.MEDIUM: "#f97316",
@@ -52,38 +52,38 @@ SEVERITY_COLORS = {
 
 
 class Alarm(BaseModel):
-    """告警记录表"""
+    """Alarm Record Table"""
     __tablename__ = "alarms"
     
-    # 基本信息
+    # Basic Info
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     bench_id = Column(String(36), ForeignKey("test_benches.id"), nullable=False)
     
-    # 告警信息
+    # Alarm Info
     type = Column(SQLEnum(AlarmType), nullable=False)
     severity = Column(SQLEnum(AlarmSeverity), nullable=False, default=AlarmSeverity.MEDIUM)
     message = Column(Text, nullable=False)
     
-    # 触发值
+    # Trigger Value
     value = Column(Float, nullable=True)
     threshold = Column(Float, nullable=True)
     
-    # 确认信息
+    # Acknowledge Info
     acknowledged = Column(Boolean, default=False)
     acknowledged_by = Column(String(100), nullable=True)
     acknowledged_at = Column(DateTime, nullable=True)
     
-    # 时间戳
+    # Timestamp
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # 关系
+    # Relationship
     bench = relationship("TestBench", back_populates="alarms")
     
     def __repr__(self):
         return f"<Alarm {self.type} - {self.bench_id}>"
     
     def to_dict(self):
-        """转换为字典"""
+        """Convert to dict"""
         return {
             "id": self.id,
             "benchId": self.bench_id,

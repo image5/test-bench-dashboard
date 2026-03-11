@@ -1,12 +1,12 @@
 """
 Database Initialization Script
-数据库初始化脚本
+Initialize database with sample data
 """
 
 import sys
 import os
 
-# 添加项目路径
+# Add project path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import init_db, SessionLocal
@@ -15,25 +15,27 @@ from app.models.bench import TestBench, BenchType, BenchStatus
 
 
 def init_sample_data():
-    """初始化示例数据"""
+    """Initialize sample data"""
     db = SessionLocal()
     
     try:
-        # 检查是否已有数据
+        # Check if data already exists
         if db.query(Laboratory).first():
             print("[INFO] Database already has data, skipping initialization")
             return
         
         print("[INFO] Initializing sample data...")
         
-        # 创建实验室
+        # Create laboratories
         lab1 = Laboratory(
-            name="Power Test Lab",
-            description="Power system test benches",
+            id="lab-power-001",
+            name="Power System Test Lab",
+            description="Powertrain and motor test benches",
             width=1920,
             height=1080,
         )
         lab2 = Laboratory(
+            id="lab-battery-001",
             name="Battery Test Lab",
             description="Battery system test benches",
             width=1920,
@@ -42,10 +44,11 @@ def init_sample_data():
         db.add_all([lab1, lab2])
         db.commit()
         
-        # 创建示例台架
+        # Create sample benches
         sample_benches = [
             # Power Test Lab
             {
+                "id": "bench-hil-001",
                 "name": "HIL-001",
                 "type": BenchType.HIL,
                 "ip_address": "192.168.1.101",
@@ -55,6 +58,7 @@ def init_sample_data():
                 "laboratory_id": lab1.id,
             },
             {
+                "id": "bench-hil-002",
                 "name": "HIL-002",
                 "type": BenchType.HIL,
                 "ip_address": "192.168.1.102",
@@ -64,6 +68,7 @@ def init_sample_data():
                 "laboratory_id": lab1.id,
             },
             {
+                "id": "bench-sys-001",
                 "name": "SYS-001",
                 "type": BenchType.SYSTEM,
                 "ip_address": "192.168.1.201",
@@ -73,6 +78,7 @@ def init_sample_data():
                 "laboratory_id": lab1.id,
             },
             {
+                "id": "asm-001",
                 "name": "ASM-001",
                 "type": BenchType.ASSEMBLY,
                 "ip_address": "192.168.1.301",
@@ -82,6 +88,7 @@ def init_sample_data():
                 "laboratory_id": lab1.id,
             },
             {
+                "id": "hw-001",
                 "name": "HW-001",
                 "type": BenchType.HARDWARE,
                 "ip_address": "192.168.1.401",
@@ -91,6 +98,7 @@ def init_sample_data():
                 "laboratory_id": lab1.id,
             },
             {
+                "id": "sw-001",
                 "name": "SW-001",
                 "type": BenchType.SOFTWARE,
                 "ip_address": "192.168.1.501",
@@ -101,6 +109,7 @@ def init_sample_data():
             },
             # Battery Test Lab
             {
+                "id": "bat-hil-001",
                 "name": "BAT-HIL-001",
                 "type": BenchType.HIL,
                 "ip_address": "192.168.2.101",
@@ -110,6 +119,7 @@ def init_sample_data():
                 "laboratory_id": lab2.id,
             },
             {
+                "id": "bat-sys-001",
                 "name": "BAT-SYS-001",
                 "type": BenchType.SYSTEM,
                 "ip_address": "192.168.2.201",
@@ -121,10 +131,7 @@ def init_sample_data():
         ]
         
         for bench_data in sample_benches:
-            bench = TestBench(
-                **bench_data,
-                status=BenchStatus.OFFLINE,
-            )
+            bench = TestBench(**bench_data, status=BenchStatus.OFFLINE)
             db.add(bench)
         
         db.commit()
@@ -134,6 +141,7 @@ def init_sample_data():
     except Exception as e:
         print(f"[ERROR] Initialization failed: {e}")
         db.rollback()
+        raise
     finally:
         db.close()
 

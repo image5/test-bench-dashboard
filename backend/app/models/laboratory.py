@@ -1,9 +1,9 @@
 """
 Laboratory Model
-实验室数据模型
+Laboratory Data Model
 """
 
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, Text
 from datetime import datetime
 import uuid
 
@@ -11,22 +11,22 @@ from app.core.database import BaseModel
 
 
 class Laboratory(BaseModel):
-    """实验室表"""
+    """Laboratory Table"""
     __tablename__ = "laboratories"
     
-    # 基本信息
+    # Basic Info
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False, unique=True)
     description = Column(String(500), nullable=True)
     
-    # 背景图
+    # Background Image
     background_image = Column(String(500), nullable=True)
     
-    # 画布尺寸
+    # Canvas Size
     width = Column(Integer, default=1920)
     height = Column(Integer, default=1080)
     
-    # 时间戳
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -34,7 +34,7 @@ class Laboratory(BaseModel):
         return f"<Laboratory {self.name}>"
     
     def to_dict(self):
-        """转换为字典"""
+        """Convert to dict"""
         return {
             "id": self.id,
             "name": self.name,

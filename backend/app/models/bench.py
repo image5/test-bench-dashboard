@@ -1,6 +1,6 @@
 """
 Test Bench Model
-测试台架数据模型
+Test Bench Data Model
 """
 
 from sqlalchemy import Column, String, Integer, Float, Boolean, Enum as SQLEnum, Text, DateTime, ForeignKey
@@ -14,96 +14,96 @@ from app.core.database import BaseModel
 
 
 class BenchType(str, enum.Enum):
-    """台架类型枚举"""
-    HIL = "hil"                     # HIL测试台架
-    SYSTEM = "system"               # 系统测试台架
-    ASSEMBLY = "assembly"           # 总成测试台架
-    HARDWARE = "hardware"           # 硬件测试台架
-    SOFTWARE = "software"           # 软件长稳测试台架
-    OTHER = "other"                 # 其他测试台架
+    """Bench Type Enum"""
+    HIL = "hil"                     # HIL Test Bench
+    SYSTEM = "system"               # System Test Bench
+    ASSEMBLY = "assembly"           # Assembly Test Bench
+    HARDWARE = "hardware"           # Hardware Test Bench
+    SOFTWARE = "software"           # Software Long-term Test Bench
+    OTHER = "other"                 # Other Test Bench
 
 
 class BenchStatus(str, enum.Enum):
-    """台架状态枚举"""
-    RUNNING = "running"             # 运行中
-    OFFLINE = "offline"             # 离线
-    MAINTENANCE = "maintenance"     # 维护中
-    ALARM = "alarm"                 # 告警
-    IDLE = "idle"                   # 空闲
+    """Bench Status Enum"""
+    RUNNING = "running"             # Running
+    OFFLINE = "offline"             # Offline
+    MAINTENANCE = "maintenance"     # Under Maintenance
+    ALARM = "alarm"                 # Alarm
+    IDLE = "idle"                   # Idle
 
 
-# 台架类型配置
+# Bench Type Configuration
 BENCH_TYPE_CONFIG = {
-    BenchType.HIL: {"label": "HIL测试台架", "icon": "🖥️", "color": "#3b82f6"},
-    BenchType.SYSTEM: {"label": "系统测试台架", "icon": "🔧", "color": "#8b5cf6"},
-    BenchType.ASSEMBLY: {"label": "总成测试台架", "icon": "⚙️", "color": "#06b6d4"},
-    BenchType.HARDWARE: {"label": "硬件测试台架", "icon": "🔌", "color": "#f59e0b"},
-    BenchType.SOFTWARE: {"label": "软件长稳测试台架", "icon": "💻", "color": "#10b981"},
-    BenchType.OTHER: {"label": "其他测试台架", "icon": "📦", "color": "#6b7280"},
+    BenchType.HIL: {"label": "HIL Test Bench", "icon": "🖥️", "color": "#3b82f6"},
+    BenchType.SYSTEM: {"label": "System Test Bench", "icon": "🔧", "color": "#8b5cf6"},
+    BenchType.ASSEMBLY: {"label": "Assembly Test Bench", "icon": "⚙️", "color": "#06b6d4"},
+    BenchType.HARDWARE: {"label": "Hardware Test Bench", "icon": "🔌", "color": "#f59e0b"},
+    BenchType.SOFTWARE: {"label": "Software Test Bench", "icon": "💻", "color": "#10b981"},
+    BenchType.OTHER: {"label": "Other Test Bench", "icon": "📦", "color": "#6b7280"},
 }
 
-# 状态颜色配置
+# Status Color Configuration
 STATUS_COLORS = {
-    BenchStatus.RUNNING: "#22c55e",     # 绿色
-    BenchStatus.OFFLINE: "#6b7280",     # 灰色
-    BenchStatus.MAINTENANCE: "#f59e0b", # 黄色
-    BenchStatus.ALARM: "#ef4444",       # 红色
-    BenchStatus.IDLE: "#3b82f6",        # 蓝色
+    BenchStatus.RUNNING: "#22c55e",     # Green
+    BenchStatus.OFFLINE: "#6b7280",     # Gray
+    BenchStatus.MAINTENANCE: "#f59e0b", # Yellow
+    BenchStatus.ALARM: "#ef4444",       # Red
+    BenchStatus.IDLE: "#3b82f6",        # Blue
 }
 
-# 状态标签配置
+# Status Label Configuration
 STATUS_LABELS = {
-    BenchStatus.RUNNING: "运行中",
-    BenchStatus.OFFLINE: "离线",
-    BenchStatus.MAINTENANCE: "维护中",
-    BenchStatus.ALARM: "告警",
-    BenchStatus.IDLE: "空闲",
+    BenchStatus.RUNNING: "Running",
+    BenchStatus.OFFLINE: "Offline",
+    BenchStatus.MAINTENANCE: "Maintenance",
+    BenchStatus.ALARM: "Alarm",
+    BenchStatus.IDLE: "Idle",
 }
 
 
 class TestBench(BaseModel):
-    """测试台架表"""
+    """Test Bench Table"""
     __tablename__ = "test_benches"
     
-    # 基本信息
+    # Basic Info
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     laboratory_id = Column(String(36), ForeignKey("laboratories.id"), nullable=True)
     name = Column(String(100), nullable=False, index=True)
     type = Column(SQLEnum(BenchType), nullable=False, default=BenchType.OTHER)
     
-    # 网络配置
+    # Network Configuration
     ip_address = Column(String(50), nullable=False)
     port = Column(Integer, nullable=False, default=8080)
     
-    # 位置信息
+    # Position Info
     position_x = Column(Float, nullable=False, default=0)
     position_y = Column(Float, nullable=False, default=0)
     rotation = Column(Integer, default=0)
     
-    # 状态信息
+    # Status Info
     status = Column(SQLEnum(BenchStatus), nullable=False, default=BenchStatus.OFFLINE)
     last_heartbeat = Column(DateTime, nullable=True)
     current_task = Column(String(200), nullable=True)
     task_start_time = Column(DateTime, nullable=True)
     
-    # 维护信息
+    # Maintenance Info
     is_under_maintenance = Column(Boolean, default=False)
     maintenance_reason = Column(String(200), nullable=True)
     maintenance_start_time = Column(DateTime, nullable=True)
     maintenance_operator = Column(String(100), nullable=True)
     
-    # 告警信息
+    # Alarm Info
     has_alarm = Column(Boolean, default=False)
     alarm_message = Column(Text, nullable=True)
     
-    # 额外数据（传感器读数等）
+    # Extra Data (sensor readings, etc.)
     metrics = Column(JSON, default=dict)
     
-    # 时间戳
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # 关系
+    # Relationships
     alarms = relationship("Alarm", back_populates="bench", cascade="all, delete-orphan")
     maintenance_records = relationship("MaintenanceRecord", back_populates="bench", cascade="all, delete-orphan")
     
@@ -111,7 +111,7 @@ class TestBench(BaseModel):
         return f"<TestBench {self.name}>"
     
     def to_dict(self):
-        """转换为字典（适配前端格式）"""
+        """Convert to dict (for frontend format)"""
         return {
             "id": self.id,
             "laboratoryId": self.laboratory_id,
@@ -130,7 +130,7 @@ class TestBench(BaseModel):
             "status": {
                 "state": self.status.value if self.status else None,
                 "color": STATUS_COLORS.get(self.status, "#6b7280"),
-                "label": STATUS_LABELS.get(self.status, "未知"),
+                "label": STATUS_LABELS.get(self.status, "Unknown"),
                 "lastHeartbeat": self.last_heartbeat.isoformat() if self.last_heartbeat else None,
                 "currentTask": self.current_task,
                 "taskStartTime": self.task_start_time.isoformat() if self.task_start_time else None
