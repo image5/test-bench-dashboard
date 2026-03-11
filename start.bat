@@ -1,66 +1,68 @@
 @echo off
-chcp 65001 >nul
 echo ========================================
-echo   智能测试台架工厂数字孪生看板
-echo   一键启动脚本
+echo   Test Bench Dashboard
+echo   Quick Start Script
 echo ========================================
 echo.
 
 cd /d "%~dp0"
 
-REM 检查 Python
+REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未找到 Python，请先安装 Python 3.10+
+    echo [ERROR] Python not found. Please install Python 3.10+
     pause
     exit /b 1
 )
 
-REM 检查 Node.js
+REM Check Node.js
 node --version >nul 2>&1
 if errorlevel 1 (
-    echo [错误] 未找到 Node.js，请先安装 Node.js 18+
+    echo [ERROR] Node.js not found. Please install Node.js 18+
     pause
     exit /b 1
 )
 
-echo [1/4] 初始化后端...
+echo [1/4] Initializing backend...
 cd backend
 if not exist "venv" (
+    echo Creating virtual environment...
     python -m venv venv
 )
 call venv\Scripts\activate.bat
 pip show fastapi >nul 2>&1
 if errorlevel 1 (
+    echo Installing dependencies...
     pip install -r requirements.txt
 )
 if not exist "data" mkdir data
 python init_db.py
 
 echo.
-echo [2/4] 启动后端服务...
-start "后端服务" cmd /k "venv\Scripts\activate.bat && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+echo [2/4] Starting backend server...
+start "Backend Server" cmd /k "venv\Scripts\activate.bat && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
 echo.
-echo [3/4] 初始化前端...
+echo [3/4] Initializing frontend...
 cd ..\frontend
 if not exist "node_modules" (
+    echo Installing npm dependencies...
     npm install
 )
 
 echo.
-echo [4/4] 启动前端服务...
-start "前端服务" cmd /k "npm run dev"
+echo [4/4] Starting frontend server...
+start "Frontend Server" cmd /k "npm run dev"
 
 echo.
 echo ========================================
-echo   启动完成！
+echo   Startup Complete!
 echo ========================================
 echo.
-echo   前端: http://localhost:3000
-echo   后端: http://localhost:8000
-echo   API文档: http://localhost:8000/docs
+echo   Frontend: http://localhost:3000
+echo   Backend:  http://localhost:8000
+echo   API Docs: http://localhost:8000/docs
 echo.
-echo   按任意键打开浏览器...
+echo   Press any key to open browser...
 pause >nul
 start http://localhost:3000
