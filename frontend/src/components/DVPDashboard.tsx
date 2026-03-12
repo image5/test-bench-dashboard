@@ -25,7 +25,15 @@ export default function DVPDashboard() {
       setError(null);
     } catch (err: any) {
       console.error('Error fetching projects:', err);
-      setError(err.message || '加载项目失败');
+      
+      // 更友好的错误提示
+      if (err.message?.includes('DVP后端服务未启动')) {
+        setError('DVP后端服务未启动');
+      } else if (err.code === 'ECONNREFUSED' || err.message?.includes('Network Error')) {
+        setError('无法连接到DVP后端服务');
+      } else {
+        setError(err.message || '加载项目失败');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,15 +67,51 @@ export default function DVPDashboard() {
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={fetchProjects}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            重试
-          </button>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center max-w-lg">
+          <span className="text-6xl mb-4 block">⚠️</span>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{error}</h2>
+          <p className="text-gray-600 mb-6">
+            DVP进度看板需要独立的后端服务支持
+          </p>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left mb-4">
+            <h3 className="font-semibold text-blue-900 mb-2">📋 启动步骤：</h3>
+            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+              <li>打开新的终端窗口</li>
+              <li>进入 DVP 后端目录：
+                <code className="bg-blue-100 px-1 rounded ml-1">
+                  cd dvp-dashboard/backend
+                </code>
+              </li>
+              <li>启动后端服务：
+                <code className="bg-blue-100 px-1 rounded ml-1">
+                  start.bat
+                </code>
+              </li>
+              <li>等待服务启动完成（约10秒）</li>
+              <li>刷新此页面</li>
+            </ol>
+          </div>
+          
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={fetchProjects}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              🔄 重试
+            </button>
+            <button
+              onClick={() => window.open('http://localhost:8001/docs', '_blank')}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              📚 查看API文档
+            </button>
+          </div>
+          
+          <p className="text-xs text-gray-500 mt-4">
+            💡 提示：DVP后端运行在端口 8001，测试台架后端运行在端口 8000
+          </p>
         </div>
       </div>
     );

@@ -5,15 +5,29 @@
 
 interface AppConfig {
   apiUrl: string;
+  dvpApiUrl: string;
   version: string;
   lastUpdate: string;
+  features?: {
+    testBenchDashboard: boolean;
+    dvpDashboard: boolean;
+    automationDashboard: boolean;
+    aiAssistantDashboard: boolean;
+  };
 }
 
 // 默认配置（作为后备）
 const DEFAULT_CONFIG: AppConfig = {
   apiUrl: 'http://localhost:8000/api/v1',
-  version: '1.0.0',
+  dvpApiUrl: 'http://localhost:8001',
+  version: '2.0.0',
   lastUpdate: new Date().toISOString().split('T')[0],
+  features: {
+    testBenchDashboard: true,
+    dvpDashboard: true,
+    automationDashboard: false,
+    aiAssistantDashboard: false,
+  },
 };
 
 let cachedConfig: AppConfig | null = null;
@@ -56,6 +70,14 @@ export async function loadConfig(): Promise<AppConfig> {
 export async function getApiUrl(): Promise<string> {
   const config = await loadConfig();
   return config.apiUrl;
+}
+
+/**
+ * 获取 DVP API 基础 URL
+ */
+export async function getDvpApiUrl(): Promise<string> {
+  const config = await loadConfig();
+  return config.dvpApiUrl || 'http://localhost:8001';
 }
 
 /**

@@ -10,6 +10,7 @@ interface ConfigManagerProps {
 
 export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
   const [apiUrl, setApiUrl] = useState('');
+  const [dvpApiUrl, setDvpApiUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -23,6 +24,7 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
     try {
       const config = await loadConfig();
       setApiUrl(config.apiUrl);
+      setDvpApiUrl(config.dvpApiUrl || 'http://localhost:8001');
     } catch (error) {
       console.error('Failed to load config:', error);
       setMessage({ type: 'error', text: '加载配置失败' });
@@ -36,9 +38,7 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
     try {
       // 验证 URL 格式
       new URL(apiUrl);
-      
-      // 获取当前配置
-      const currentConfig = await loadConfig();
+      new URL(dvpApiUrl);
       
       // 构建完整的 API URL
       const configApiUrl = apiUrl.replace('/api/v1', '') + '/api/v1/config';
@@ -49,8 +49,15 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           apiUrl,
-          version: "1.0.0",
-          lastUpdate: new Date().toISOString().split('T')[0]
+          dvpApiUrl,
+          version: "2.0.0",
+          lastUpdate: new Date().toISOString().split('T')[0],
+          features: {
+            testBenchDashboard: true,
+            dvpDashboard: true,
+            automationDashboard: false,
+            aiAssistantDashboard: false,
+          }
         }),
       });
 
@@ -82,6 +89,7 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
 
   const handleReset = () => {
     setApiUrl('http://localhost:8000/api/v1');
+    setDvpApiUrl('http://localhost:8001');
     setMessage(null);
   };
 
@@ -101,10 +109,10 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
         </div>
 
         <div className="space-y-4">
-          {/* API 地址配置 */}
+          {/* 测试台架 API 地址配置 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              服务器 API 地址
+              测试台架 API 地址
             </label>
             <input
               type="text"
@@ -114,7 +122,24 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
             />
             <p className="text-xs text-gray-500 mt-1">
-              💡 提示：修改为服务器 IP 后，局域网内其他设备可访问本系统
+              💡 端口 8000 - 测试台架工厂数字孪生看板
+            </p>
+          </div>
+
+          {/* DVP API 地址配置 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              DVP 进度看板 API 地址
+            </label>
+            <input
+              type="text"
+              value={dvpApiUrl}
+              onChange={(e) => setDvpApiUrl(e.target.value)}
+              placeholder="http://192.168.1.100:8001"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 端口 8001 - 车辆控制器DVP进度监控
             </p>
           </div>
 
@@ -123,16 +148,22 @@ export default function ConfigManager({ isOpen, onClose }: ConfigManagerProps) {
             <p className="text-xs font-medium text-gray-700 mb-2">快速配置：</p>
             <div className="space-y-1">
               <button
-                onClick={() => setApiUrl('http://localhost:8000/api/v1')}
+                onClick={() => {
+                  setApiUrl('http://localhost:8000/api/v1');
+                  setDvpApiUrl('http://localhost:8001');
+                }}
                 className="text-xs text-blue-600 hover:text-blue-800 block"
               >
-                • 本地开发：http://localhost:8000/api/v1
+                • 本地开发：8000 + 8001
               </button>
               <button
-                onClick={() => setApiUrl('http://192.168.1.100:8000/api/v1')}
+                onClick={() => {
+                  setApiUrl('http://192.168.1.100:8000/api/v1');
+                  setDvpApiUrl('http://192.168.1.100:8001');
+                }}
                 className="text-xs text-blue-600 hover:text-blue-800 block"
               >
-                • 局域网访问：http://192.168.1.100:8000/api/v1
+                • 局域网访问：192.168.1.100
               </button>
             </div>
           </div>

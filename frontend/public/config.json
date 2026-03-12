@@ -1,5 +1,12 @@
 {
   "apiUrl": "http://192.168.1.100:8000/api/v1",
-  "version": "1.0.0",
-  "lastUpdate": "2026-03-12"
+  "dvpApiUrl": "http://192.168.1.100:8001",
+  "version": "2.0.0",
+  "lastUpdate": "2026-03-12",
+  "features": {
+    "testBenchDashboard": true,
+    "dvpDashboard": true,
+    "automationDashboard": false,
+    "aiAssistantDashboard": false
+  }
 }

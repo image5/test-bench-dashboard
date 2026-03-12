@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import { loadConfig } from './config';
+import { getDvpApiUrl } from './config';
 
 // DVP API 基础配置
 const DVP_API_BASE = 'http://localhost:8001'; // DVP 后端默认端口
@@ -20,15 +20,26 @@ const dvpApi = axios.create({
 // 动态设置 baseURL
 dvpApi.interceptors.request.use(async (config) => {
   try {
-    const appConfig = await loadConfig();
-    // DVP API 可能在不同端口
-    const dvpUrl = appConfig.apiUrl.replace(':8000', ':8001').replace('/api/v1', '');
+    const dvpUrl = await getDvpApiUrl();
     config.baseURL = dvpUrl;
+    console.log('[DVP API] Using URL:', dvpUrl);
   } catch (error) {
     console.warn('[DVP API] Using default baseURL');
   }
   return config;
 });
+
+// 响应拦截器 - 统一错误处理
+dvpApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+      console.error('[DVP API] Connection failed - DVP backend may not be running');
+      throw new Error('DVP后端服务未启动，请先启动DVP后端服务（端口8001）');
+    }
+    throw error;
+  }
+);
 
 // ============ 项目 API ============
 

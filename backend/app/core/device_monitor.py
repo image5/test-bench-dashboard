@@ -19,7 +19,7 @@ class DeviceMonitor:
     
     def __init__(self):
         self.is_running = False
-        self.check_interval = 30  # 检测间隔（秒）
+        self.check_interval = 300  # 检测间隔（秒）- 5分钟
         self.offline_threshold = 90  # 离线阈值（秒）
     
     @staticmethod
