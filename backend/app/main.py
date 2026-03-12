@@ -7,8 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
+import asyncio
 
 from app.core.database import init_db
+from app.core.device_monitor import device_monitor
 from app.api import benches_router, laboratories_router, alarms_router, statistics_router
 
 
@@ -18,8 +20,17 @@ async def lifespan(app: FastAPI):
     # 启动时
     init_db()
     print("[OK] Database initialized")
+    
+    # 启动设备监控
+    device_monitor.start()
+    monitor_task = asyncio.create_task(device_monitor.monitor_devices())
+    print("[OK] Device monitor started")
+    
     yield
+    
     # 关闭时
+    device_monitor.stop()
+    monitor_task.cancel()
     print("[INFO] Application shutdown")
 
 
