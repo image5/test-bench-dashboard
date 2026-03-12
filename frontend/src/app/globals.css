@@ -83,18 +83,22 @@
   background-size: 40px 40px;
 }
 
-/* 台架卡片 */
+/* 台架卡片 - 科技感设计 */
 .bench-card {
-  @apply bg-white rounded-lg shadow-md p-3 cursor-move transition-all duration-200;
+  @apply bg-white rounded-lg shadow-md p-3 cursor-move transition-all duration-300;
   min-width: 180px;
+  position: relative;
+  backdrop-filter: blur(8px);
 }
 
 .bench-card:hover {
-  @apply shadow-lg scale-105;
+  @apply shadow-xl;
+  transform: translateY(-2px);
 }
 
 .bench-card.selected {
   @apply ring-2 ring-blue-500;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 /* 统计卡片 */

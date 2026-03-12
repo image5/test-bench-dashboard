@@ -4,6 +4,7 @@ import { useStore } from '@/store';
 import { laboratoriesApi } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import ConfigManager from './ConfigManager';
 
 export default function Header() {
   const {
@@ -18,6 +19,7 @@ export default function Header() {
   } = useStore();
   
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showConfig, setShowConfig] = useState(false);
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -83,7 +85,7 @@ export default function Header() {
       )}
       
       {/* 右侧 - 工具栏 */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* 网格开关 */}
         <button
           onClick={() => setShowGrid(!showGrid)}
@@ -104,11 +106,23 @@ export default function Header() {
           {isEditMode ? '✏️ 编辑中' : '✏️ 编辑模式'}
         </button>
         
+        {/* 设置按钮 */}
+        <button
+          onClick={() => setShowConfig(true)}
+          className="px-3 py-1.5 rounded text-sm bg-slate-700 hover:bg-slate-600"
+          title="系统配置"
+        >
+          ⚙️ 设置
+        </button>
+        
         {/* 当前时间 */}
-        <div className="text-sm text-gray-300">
+        <div className="text-sm text-gray-300 ml-2">
           {formatDateTime(currentTime.toISOString())}
         </div>
       </div>
+      
+      {/* 配置管理器 */}
+      <ConfigManager isOpen={showConfig} onClose={() => setShowConfig(false)} />
     </header>
   );
 }

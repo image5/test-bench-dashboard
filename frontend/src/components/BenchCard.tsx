@@ -55,57 +55,77 @@ export default function BenchCard({
   return (
     <>
       <div
-        className={`bench-card ${isSelected ? 'selected' : ''} ${
+        className={`bench-card relative overflow-hidden ${isSelected ? 'selected' : ''} ${
           bench.alarm.hasAlarm ? 'ring-2 ring-red-500 animate-pulse' : ''
         }`}
         style={{
-          borderLeft: `4px solid ${statusColor}`,
+          borderLeft: `3px solid ${statusColor}`,
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,249,255,0.9) 100%)',
+          boxShadow: isSelected 
+            ? `0 0 0 1px ${statusColor}40, 0 4px 12px ${statusColor}20, inset 0 1px 0 rgba(255,255,255,0.8)`
+            : '0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}
       >
+        {/* 科技感装饰线条 */}
+        <div className="absolute top-0 right-0 w-16 h-16 opacity-5">
+          <div className="absolute top-2 right-2 w-12 h-0.5 bg-current rotate-45"></div>
+          <div className="absolute top-4 right-4 w-8 h-0.5 bg-current rotate-45"></div>
+          <div className="absolute top-6 right-6 w-4 h-0.5 bg-current rotate-45"></div>
+        </div>
+        
         {/* 头部 - 类型图标和名称 */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{typeInfo?.icon || '📦'}</span>
-            <span className="font-bold text-gray-800">{bench.name}</span>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg">{typeInfo?.icon || '📦'}</span>
+            <span className="font-semibold text-gray-800 text-sm">{bench.name}</span>
           </div>
           
-          {/* 状态指示器 */}
+          {/* 状态指示器 - 科技感设计 */}
           <div
-            className="px-2 py-0.5 rounded text-xs text-white"
-            style={{ backgroundColor: statusColor }}
+            className="px-2 py-0.5 rounded text-[10px] font-medium text-white relative overflow-hidden"
+            style={{ 
+              backgroundColor: statusColor,
+              boxShadow: `0 0 8px ${statusColor}60`
+            }}
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
             {statusLabel}
           </div>
         </div>
         
         {/* 网络信息 */}
-        <div className="text-xs text-gray-500 mb-1">
-          🌐 {bench.network.ip}:{bench.network.port}
+        <div className="text-[10px] text-gray-500 mb-0.5 flex items-center gap-1">
+          <span className="opacity-60">🌐</span>
+          <span className="font-mono">{bench.network.ip}:{bench.network.port}</span>
         </div>
         
         {/* 当前任务 */}
         {bench.status.currentTask && (
-          <div className="text-xs text-gray-600 mb-1 truncate">
-            📋 {bench.status.currentTask}
+          <div className="text-[10px] text-gray-600 mb-0.5 truncate flex items-center gap-1">
+            <span className="opacity-60">📋</span>
+            <span>{bench.status.currentTask}</span>
           </div>
         )}
         
         {/* 心跳时间 */}
-        <div className="text-xs text-gray-400">
-          💓 {getTimeAgo(bench.status.lastHeartbeat)}
+        <div className="text-[10px] text-gray-400 flex items-center gap-1">
+          <span className="opacity-60">💓</span>
+          <span>{getTimeAgo(bench.status.lastHeartbeat)}</span>
         </div>
         
         {/* 告警信息 */}
         {bench.alarm.hasAlarm && (
-          <div className="mt-2 p-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-            ⚠️ {bench.alarm.message}
+          <div className="mt-1.5 p-1 bg-red-50 border border-red-200 rounded text-[10px] text-red-600 flex items-start gap-1">
+            <span>⚠️</span>
+            <span>{bench.alarm.message}</span>
           </div>
         )}
         
         {/* 维护信息 */}
         {bench.maintenance.isUnderMaintenance && (
-          <div className="mt-2 p-1.5 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-            🔧 维护中: {bench.maintenance.reason}
+          <div className="mt-1.5 p-1 bg-yellow-50 border border-yellow-200 rounded text-[10px] text-yellow-700 flex items-start gap-1">
+            <span>🔧</span>
+            <span>维护中: {bench.maintenance.reason}</span>
           </div>
         )}
         

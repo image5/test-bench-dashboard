@@ -11,7 +11,7 @@ import asyncio
 
 from app.core.database import init_db
 from app.core.device_monitor import device_monitor
-from app.api import benches_router, laboratories_router, alarms_router, statistics_router
+from app.api import benches_router, laboratories_router, alarms_router, statistics_router, config_router
 
 
 @asynccontextmanager
@@ -56,6 +56,7 @@ app.include_router(benches_router, prefix="/api/v1")
 app.include_router(laboratories_router, prefix="/api/v1")
 app.include_router(alarms_router, prefix="/api/v1")
 app.include_router(statistics_router, prefix="/api/v1")
+app.include_router(config_router, prefix="/api/v1")
 
 
 @app.get("/")

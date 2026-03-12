@@ -1,14 +1,29 @@
 import axios from 'axios';
 import { TestBench, Laboratory, Alarm, StatisticsOverview, BenchType, BenchStatus } from '@/types';
+import { loadConfig } from './config';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+// 默认 API 地址（作为后备）
+const DEFAULT_API_BASE = 'http://localhost:8000/api/v1';
 
+// 创建 axios 实例
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: DEFAULT_API_BASE,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// 动态设置 baseURL 的拦截器
+api.interceptors.request.use(async (config) => {
+  try {
+    const appConfig = await loadConfig();
+    config.baseURL = appConfig.apiUrl;
+  } catch (error) {
+    console.warn('[API] Failed to load config, using default baseURL');
+    config.baseURL = DEFAULT_API_BASE;
+  }
+  return config;
 });
 
 // ============ 台架 API ============
