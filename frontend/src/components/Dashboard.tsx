@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useStore } from '@/store';
 import { benchesApi } from '@/lib/api';
 import BenchCard from './BenchCard';
 import AddBenchDialog from './AddBenchDialog';
 import EditBenchDialog from './EditBenchDialog';
+import ZoomControl from './ZoomControl';
 import { TestBench, BenchType, BENCH_TYPE_CONFIGS } from '@/types';
+
+const GRID_SIZE = 40;
 
 export default function Dashboard() {
   const {
@@ -15,13 +18,16 @@ export default function Dashboard() {
     isEditMode,
     showGrid,
     zoom,
+    gridSnap,
     selectedBenchId,
     selectBench,
     updateBench,
+    updateBenchPosition,
     addBench,
     removeBench,
+    setZoom,
   } = useStore();
-  
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggedBenchId, setDraggedBenchId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -29,51 +35,82 @@ export default function Dashboard() {
   const [newBenchType, setNewBenchType] = useState<BenchType | null>(null);
   const [newBenchPosition, setNewBenchPosition] = useState({ x: 0, y: 0 });
   const [editingBench, setEditingBench] = useState<TestBench | null>(null);
-  
-  // 过滤当前实验室的台架
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   const filteredBenches = currentLaboratoryId
     ? benches.filter((b) => b.laboratoryId === currentLaboratoryId)
     : benches;
-  
-  // 处理拖拽开始
-  const handleDragStart = useCallback((e: React.DragEvent, benchId: string) => {
-    if (!isEditMode) return;
-    
-    const bench = benches.find((b) => b.id === benchId);
-    if (!bench) return;
-    
-    setDraggedBenchId(benchId);
-    setDragOffset({
-      x: e.clientX - bench.position.x * zoom,
-      y: e.clientY - bench.position.y * zoom,
-    });
-    
-    e.dataTransfer.effectAllowed = 'move';
-  }, [isEditMode, benches, zoom]);
-  
-  // 处理拖拽移动
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    
-    if (!draggedBenchId || !canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - dragOffset.x) / zoom;
-    const y = (e.clientY - rect.top - dragOffset.y) / zoom;
-    
-    // 更新本地状态（实时反馈）
-    updateBench(draggedBenchId, {
-      position: { x: Math.max(0, x), y: Math.max(0, y) },
-    });
-  }, [draggedBenchId, dragOffset, zoom, updateBench]);
-  
-  // 处理拖拽结束
+
+  const snapToGrid = useCallback(
+    (value: number): number => {
+      if (!gridSnap) return value;
+      return Math.round(value / GRID_SIZE) * GRID_SIZE;
+    },
+    [gridSnap]
+  );
+
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom(zoom + delta);
+      }
+    },
+    [zoom, setZoom]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      return () => canvas.removeEventListener('wheel', handleWheel);
+    }
+  }, [handleWheel]);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, benchId: string) => {
+      if (!isEditMode) return;
+
+      const bench = benches.find((b) => b.id === benchId);
+      if (!bench) return;
+
+      setDraggedBenchId(benchId);
+      setDragOffset({
+        x: e.clientX - (bench.position.x * zoom + pan.x),
+        y: e.clientY - (bench.position.y * zoom + pan.y),
+      });
+
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [isEditMode, benches, zoom, pan]
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+
+      if (!draggedBenchId || !canvasRef.current) return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      let x = (e.clientX - rect.left - dragOffset.x - pan.x) / zoom;
+      let y = (e.clientY - rect.top - dragOffset.y - pan.y) / zoom;
+
+      x = snapToGrid(Math.max(0, x));
+      y = snapToGrid(Math.max(0, y));
+
+      updateBenchPosition(draggedBenchId, { x, y });
+    },
+    [draggedBenchId, dragOffset, zoom, pan, snapToGrid, updateBenchPosition]
+  );
+
   const handleDragEnd = useCallback(async () => {
     if (!draggedBenchId) return;
-    
+
     const bench = benches.find((b) => b.id === draggedBenchId);
     if (bench) {
-      // 保存到服务器
       try {
         await benchesApi.updatePosition(
           draggedBenchId,
@@ -85,35 +122,60 @@ export default function Dashboard() {
         console.error('保存位置失败:', error);
       }
     }
-    
+
     setDraggedBenchId(null);
   }, [draggedBenchId, benches]);
-  
-  // 处理从侧边栏拖入新台架
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    
-    const benchType = e.dataTransfer.getData('benchType') as BenchType;
-    if (!benchType || !canvasRef.current) return;
-    
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
-    
-    // 打开添加对话框
-    setNewBenchType(benchType);
-    setNewBenchPosition({ x, y });
-    setShowAddDialog(true);
-  }, [zoom]);
-  
-  // 处理添加台架
-  const handleAddBench = async (data: {
-    name: string;
-    ipAddress: string;
-    port: number;
-  }) => {
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+
+      const benchType = e.dataTransfer.getData('benchType') as BenchType;
+      if (!benchType || !canvasRef.current) return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      let x = (e.clientX - rect.left - pan.x) / zoom;
+      let y = (e.clientY - rect.top - pan.y) / zoom;
+
+      x = snapToGrid(x);
+      y = snapToGrid(y);
+
+      setNewBenchType(benchType);
+      setNewBenchPosition({ x, y });
+      setShowAddDialog(true);
+    },
+    [zoom, pan, snapToGrid]
+  );
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      }
+    },
+    [pan]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isPanning) {
+        setPan({
+          x: e.clientX - panStart.x,
+          y: e.clientY - panStart.y,
+        });
+      }
+    },
+    [isPanning, panStart]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handleAddBench = async (data: { name: string; ipAddress: string; port: number }) => {
     if (!newBenchType) return;
-    
+
     try {
       const newBench = await benchesApi.create({
         name: data.name,
@@ -124,7 +186,7 @@ export default function Dashboard() {
         positionX: newBenchPosition.x,
         positionY: newBenchPosition.y,
       });
-      
+
       addBench(newBench);
       setShowAddDialog(false);
       setNewBenchType(null);
@@ -133,11 +195,10 @@ export default function Dashboard() {
       throw error;
     }
   };
-  
-  // 处理删除台架
+
   const handleDeleteBench = async (benchId: string) => {
     if (!confirm('确定要删除此台架吗？')) return;
-    
+
     try {
       await benchesApi.delete(benchId);
       removeBench(benchId);
@@ -145,8 +206,7 @@ export default function Dashboard() {
       console.error('删除台架失败:', error);
     }
   };
-  
-  // 处理设置维护
+
   const handleSetMaintenance = async (
     benchId: string,
     data: { isUnderMaintenance: boolean; reason?: string; operator?: string }
@@ -162,70 +222,80 @@ export default function Dashboard() {
   return (
     <div
       ref={canvasRef}
-      className={`flex-1 relative overflow-hidden ${
-        showGrid ? 'dashboard-canvas' : 'bg-gray-200'
-      }`}
+      className={`flex-1 relative overflow-hidden cursor-grab ${
+        isPanning ? 'cursor-grabbing' : ''
+      } ${showGrid ? 'dashboard-canvas' : 'bg-gray-200'}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={() => selectBench(null)}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
       style={{
-        backgroundImage: showGrid ? undefined : 'none',
-        backgroundSize: `${40 * zoom}px ${40 * zoom}px`,
+        backgroundImage: showGrid
+          ? `linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+             linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)`
+          : 'none',
+        backgroundSize: `${GRID_SIZE * zoom}px ${GRID_SIZE * zoom}px`,
+        backgroundPosition: `${pan.x}px ${pan.y}px`,
       }}
     >
-      {/* 台架卡片 */}
-      {filteredBenches.map((bench) => (
-        <div
-          key={bench.id}
-          draggable={isEditMode}
-          onDragStart={(e) => handleDragStart(e, bench.id)}
-          onDragEnd={handleDragEnd}
-          onClick={(e) => {
-            e.stopPropagation();
-            selectBench(bench.id);
-          }}
-          onDoubleClick={() => setEditingBench(bench)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            if (isEditMode) {
-              handleDeleteBench(bench.id);
-            }
-          }}
-          className="absolute"
-          style={{
-            left: bench.position.x * zoom,
-            top: bench.position.y * zoom,
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top left',
-          }}
-        >
-          <BenchCard
-            bench={bench}
-            isSelected={selectedBenchId === bench.id}
-            isEditMode={isEditMode}
-            onEdit={() => setEditingBench(bench)}
-            onDelete={() => handleDeleteBench(bench.id)}
-            onSetMaintenance={(data) => handleSetMaintenance(bench.id, data)}
-          />
-        </div>
-      ))}
-      
-      {/* 空状态提示 */}
+      <div
+        className="absolute"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px)`,
+        }}
+      >
+        {filteredBenches.map((bench) => (
+          <div
+            key={bench.id}
+            draggable={isEditMode}
+            onDragStart={(e) => handleDragStart(e, bench.id)}
+            onDragEnd={handleDragEnd}
+            onClick={(e) => {
+              e.stopPropagation();
+              selectBench(bench.id);
+            }}
+            onDoubleClick={() => setEditingBench(bench)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (isEditMode) {
+                handleDeleteBench(bench.id);
+              }
+            }}
+            className="absolute"
+            style={{
+              left: bench.position.x * zoom,
+              top: bench.position.y * zoom,
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            <BenchCard
+              bench={bench}
+              isSelected={selectedBenchId === bench.id}
+              isEditMode={isEditMode}
+              onEdit={() => setEditingBench(bench)}
+              onDelete={() => handleDeleteBench(bench.id)}
+              onSetMaintenance={(data) => handleSetMaintenance(bench.id, data)}
+            />
+          </div>
+        ))}
+      </div>
+
       {filteredBenches.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center text-gray-400">
             <div className="text-6xl mb-4">🏭</div>
             <div className="text-xl">暂无台架</div>
-            {isEditMode && (
-              <div className="text-sm mt-2">
-                从左侧拖拽台架到此处添加
-              </div>
-            )}
+            {isEditMode && <div className="text-sm mt-2">从左侧拖拽台架到此处添加</div>}
           </div>
         </div>
       )}
-      
-      {/* 添加台架对话框 */}
+
+      <ZoomControl />
+
       {showAddDialog && newBenchType && (
         <AddBenchDialog
           type={newBenchType}
@@ -237,8 +307,7 @@ export default function Dashboard() {
           }}
         />
       )}
-      
-      {/* 编辑台架对话框 */}
+
       {editingBench && (
         <EditBenchDialog
           bench={editingBench}

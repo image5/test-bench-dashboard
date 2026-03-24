@@ -11,6 +11,7 @@ from enum import Enum
 
 # ============ 枚举 ============
 
+
 class BenchType(str, Enum):
     HIL = "hil"
     SYSTEM = "system"
@@ -47,6 +48,7 @@ class AlarmSeverity(str, Enum):
 
 # ============ 实验室 ============
 
+
 class LaboratoryCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
@@ -79,6 +81,7 @@ class LaboratoryResponse(BaseModel):
 
 # ============ 台架 ============
 
+
 class TestBenchCreate(BaseModel):
     laboratory_id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=100)
@@ -93,7 +96,9 @@ class TestBenchCreate(BaseModel):
 class TestBenchUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[BenchType] = None
-    ip_address: Optional[str] = Field(None, pattern=r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    ip_address: Optional[str] = Field(
+        None, pattern=r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
+    )
     port: Optional[int] = Field(None, ge=1, le=65535)
     laboratory_id: Optional[str] = None
 
@@ -114,6 +119,27 @@ class HeartbeatData(BaseModel):
     status: Optional[BenchStatus] = None
     current_task: Optional[str] = None
     metrics: Optional[Dict] = None
+
+
+class BenchImportItem(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    type: str = Field(default="other")
+    ip_address: str = Field(..., pattern=r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    port: int = Field(default=8080, ge=1, le=65535)
+    position_x: float = Field(default=0)
+    position_y: float = Field(default=0)
+
+
+class BenchImportRequest(BaseModel):
+    laboratory_id: Optional[str] = None
+    benches: List[BenchImportItem]
+
+
+class BenchImportResponse(BaseModel):
+    success_count: int
+    failed_count: int
+    errors: List[Dict]
+    created_benches: List[Dict]
 
 
 class TestBenchResponse(BaseModel):
@@ -146,6 +172,7 @@ class TestBenchResponse(BaseModel):
 
 # ============ 告警 ============
 
+
 class AlarmCreate(BaseModel):
     bench_id: str
     type: AlarmType
@@ -177,6 +204,7 @@ class AlarmResponse(BaseModel):
 
 
 # ============ 统计 ============
+
 
 class StatisticsOverview(BaseModel):
     total_benches: int

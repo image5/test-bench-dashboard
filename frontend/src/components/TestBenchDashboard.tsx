@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/store';
-import { benchesApi, laboratoriesApi, statisticsApi } from '@/lib/api';
+import { benchesApi, laboratoriesApi, statisticsApi, alarmsApi } from '@/lib/api';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import Dashboard from '@/components/Dashboard';
 import Sidebar from '@/components/Sidebar';
 import StatisticsPanel from '@/components/StatisticsPanel';
@@ -11,12 +12,15 @@ import AlarmPanel from '@/components/AlarmPanel';
 export default function TestBenchDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const {
     setBenches,
     setLaboratories,
     setStatistics,
+    setAlarms,
   } = useStore();
+
+  const { isConnected } = useWebSocket();
 
   useEffect(() => {
     loadData();
@@ -25,18 +29,19 @@ export default function TestBenchDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // 并行加载数据
-      const [benches, laboratories, stats] = await Promise.all([
+
+      const [benches, laboratories, stats, alarms] = await Promise.all([
         benchesApi.list(),
         laboratoriesApi.list(),
         statisticsApi.getOverview(),
+        alarmsApi.list(),
       ]);
-      
+
       setBenches(benches);
       setLaboratories(laboratories);
       setStatistics(stats);
-      
+      setAlarms(alarms);
+
       setError(null);
     } catch (err: any) {
       console.error('加载数据失败:', err);
@@ -75,19 +80,24 @@ export default function TestBenchDashboard() {
 
   return (
     <div className="flex-1 flex">
-      {/* 左侧边栏 - 台架类型 */}
       <Sidebar />
-      
-      {/* 主内容区 */}
+
       <main className="flex-1 flex flex-col">
-        {/* 统计面板 */}
+        <div className="bg-gray-100 px-4 py-1 flex items-center gap-2 text-sm">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          ></span>
+          <span className="text-gray-600">
+            {isConnected ? '实时连接' : '离线模式'}
+          </span>
+        </div>
+
         <StatisticsPanel />
-        
-        {/* 看板画布 */}
         <Dashboard />
       </main>
-      
-      {/* 右侧告警面板 */}
+
       <AlarmPanel />
     </div>
   );

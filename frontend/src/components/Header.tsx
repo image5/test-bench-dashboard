@@ -25,14 +25,17 @@ export default function Header({
     setEditMode,
     showGrid,
     setShowGrid,
+    gridSnap,
+    setGridSnap,
     statistics,
+    zoom,
+    setZoom,
   } = useStore();
   
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   
   useEffect(() => {
-    // 只在客户端初始化时间
     setCurrentTime(new Date());
     
     const timer = setInterval(() => {
@@ -41,20 +44,16 @@ export default function Header({
     return () => clearInterval(timer);
   }, []);
 
-  // 根据当前看板决定显示哪些工具
   const isTestBenchDashboard = currentDashboard === 'test-bench';
 
   return (
     <header className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between shadow-lg">
-      {/* 左侧 - 看板选择器和标题 */}
       <div className="flex items-center gap-4">
-        {/* 看板选择器 */}
         <DashboardSelector 
           currentDashboard={currentDashboard}
           onDashboardChange={onDashboardChange || (() => {})}
         />
         
-        {/* 测试台架看板特有 - 实验室选择 */}
         {isTestBenchDashboard && (
           <select
             value={currentLaboratoryId || ''}
@@ -71,7 +70,6 @@ export default function Header({
         )}
       </div>
       
-      {/* 中间 - 统计摘要（测试台架看板特有） */}
       {isTestBenchDashboard && statistics && (
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
@@ -103,12 +101,34 @@ export default function Header({
         </div>
       )}
       
-      {/* 右侧 - 工具栏 */}
       <div className="flex items-center gap-3">
-        {/* 测试台架看板特有工具 */}
         {isTestBenchDashboard && (
           <>
-            {/* 网格开关 */}
+            <div className="flex items-center gap-2 bg-slate-700 px-2 py-1 rounded">
+              <button
+                onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                className="w-6 h-6 flex items-center justify-center hover:bg-slate-600 rounded"
+                title="缩小"
+              >
+                −
+              </button>
+              <span className="text-sm w-12 text-center">{Math.round(zoom * 100)}%</span>
+              <button
+                onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+                className="w-6 h-6 flex items-center justify-center hover:bg-slate-600 rounded"
+                title="放大"
+              >
+                +
+              </button>
+              <button
+                onClick={() => setZoom(1)}
+                className="px-2 py-0.5 text-xs hover:bg-slate-600 rounded"
+                title="重置"
+              >
+                重置
+              </button>
+            </div>
+            
             <button
               onClick={() => setShowGrid(!showGrid)}
               className={`px-3 py-1.5 rounded text-sm ${
@@ -118,7 +138,16 @@ export default function Header({
               {showGrid ? '📐 隐藏网格' : '📐 显示网格'}
             </button>
             
-            {/* 编辑模式开关 */}
+            <button
+              onClick={() => setGridSnap(!gridSnap)}
+              className={`px-3 py-1.5 rounded text-sm ${
+                gridSnap ? 'bg-purple-600' : 'bg-slate-700'
+              }`}
+              title="开启后台架位置自动对齐网格"
+            >
+              {gridSnap ? '🧲 吸附' : '🧲 自由'}
+            </button>
+            
             <button
               onClick={() => setEditMode(!isEditMode)}
               className={`px-3 py-1.5 rounded text-sm ${
@@ -130,7 +159,6 @@ export default function Header({
           </>
         )}
         
-        {/* 设置按钮 */}
         <button
           onClick={() => setShowConfig(true)}
           className="px-3 py-1.5 rounded text-sm bg-slate-700 hover:bg-slate-600"
@@ -139,13 +167,11 @@ export default function Header({
           ⚙️ 设置
         </button>
         
-        {/* 当前时间 */}
         <div className="text-sm text-gray-300 ml-2" suppressHydrationWarning>
           {currentTime ? formatDateTime(currentTime.toISOString()) : '--'}
         </div>
       </div>
       
-      {/* 配置管理器 */}
       <ConfigManager isOpen={showConfig} onClose={() => setShowConfig(false)} />
     </header>
   );

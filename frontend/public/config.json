@@ -1,8 +1,8 @@
 {
-  "apiUrl": "http://192.168.1.100:8000/api/v1",
-  "dvpApiUrl": "http://192.168.1.100:8001",
+  "apiUrl": "http://localhost:8000/api/v1",
+  "dvpApiUrl": "http://localhost:8001",
   "version": "2.1.0",
-  "lastUpdate": "2026-03-13",
+  "lastUpdate": "2026-03-24",
   "features": {
     "testBenchDashboard": true,
     "dvpDashboard": true,

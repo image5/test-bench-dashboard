@@ -124,6 +124,30 @@ export const benchesApi = {
     const response = await api.post(`/benches/${id}/clear-alarm`);
     return response.data;
   },
+
+  // 批量导入
+  import: async (data: {
+    laboratoryId?: string;
+    benches: Array<{
+      name: string;
+      type: string;
+      ip_address: string;
+      port: number;
+      position_x: number;
+      position_y: number;
+    }>;
+  }): Promise<{
+    successCount: number;
+    failedCount: number;
+    errors: Array<{ row: number; name: string; error: string }>;
+    createdBenches: TestBench[];
+  }> => {
+    const response = await api.post('/benches/import', {
+      laboratory_id: data.laboratoryId,
+      benches: data.benches,
+    });
+    return response.data;
+  },
 };
 
 // ============ 实验室 API ============
