@@ -1,12 +1,11 @@
 /**
  * DVP API 客户端
- * 用于与 DVP 后端通信（本地实现）
+ * 用于与 DVP 后端通信
  */
 
 import axios from 'axios';
 import { loadConfig } from './config';
 
-// DVP API 基础配置
 const dvpApi = axios.create({
   baseURL: 'http://localhost:8000/api/v1/dvp',
   timeout: 10000,
@@ -15,7 +14,6 @@ const dvpApi = axios.create({
   },
 });
 
-// 动态设置 baseURL
 dvpApi.interceptors.request.use(async (config) => {
   try {
     const appConfig = await loadConfig();
@@ -26,7 +24,6 @@ dvpApi.interceptors.request.use(async (config) => {
   return config;
 });
 
-// 响应拦截器 - 统一错误处理
 dvpApi.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -35,11 +32,10 @@ dvpApi.interceptors.response.use(
   }
 );
 
-// ============ 项目 API ============
-
 export interface Project {
   project_id: string;
   name: string;
+  description?: string;
   total_experiments: number;
   total_devices: number;
   progress: number;
@@ -47,6 +43,31 @@ export interface Project {
   is_interrupted: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectCreate {
+  name: string;
+  description?: string;
+  total_experiments?: number;
+  total_devices?: number;
+}
+
+export interface ProjectUpdate {
+  name?: string;
+  description?: string;
+  total_experiments?: number;
+  total_devices?: number;
+  completed_devices?: number;
+  progress?: number;
+  param_checked?: boolean;
+  is_interrupted?: boolean;
+}
+
+export interface ProgressUpdate {
+  progress: number;
+  completed_devices?: number;
+  param_checked?: boolean;
+  is_interrupted?: boolean;
 }
 
 export interface ProjectStatistics {
@@ -58,8 +79,12 @@ export interface ProjectStatistics {
 }
 
 export const projectAPI = {
-  getAll: async (skip = 0, limit = 100): Promise<Project[]> => {
-    const response = await dvpApi.get(`/projects?skip=${skip}&limit=${limit}`);
+  getAll: async (skip = 0, limit = 100, status?: string): Promise<Project[]> => {
+    const params = new URLSearchParams();
+    params.append('skip', String(skip));
+    params.append('limit', String(limit));
+    if (status) params.append('status', status);
+    const response = await dvpApi.get(`/projects?${params}`);
     return response.data;
   },
 
@@ -68,18 +93,56 @@ export const projectAPI = {
     return response.data;
   },
 
+  create: async (data: ProjectCreate): Promise<Project> => {
+    const response = await dvpApi.post('/projects', data);
+    return response.data;
+  },
+
+  update: async (projectId: string, data: ProjectUpdate): Promise<Project> => {
+    const response = await dvpApi.put(`/projects/${projectId}`, data);
+    return response.data;
+  },
+
+  updateProgress: async (projectId: string, data: ProgressUpdate): Promise<Project> => {
+    const response = await dvpApi.put(`/projects/${projectId}/progress`, data);
+    return response.data;
+  },
+
+  interrupt: async (projectId: string): Promise<Project> => {
+    const response = await dvpApi.post(`/projects/${projectId}/interrupt`);
+    return response.data;
+  },
+
+  resume: async (projectId: string): Promise<Project> => {
+    const response = await dvpApi.post(`/projects/${projectId}/resume`);
+    return response.data;
+  },
+
+  checkParams: async (projectId: string): Promise<Project> => {
+    const response = await dvpApi.post(`/projects/${projectId}/check-params`);
+    return response.data;
+  },
+
+  delete: async (projectId: string): Promise<{ message: string; project_id: string }> => {
+    const response = await dvpApi.delete(`/projects/${projectId}`);
+    return response.data;
+  },
+
   getStatistics: async (): Promise<ProjectStatistics> => {
     const response = await dvpApi.get('/statistics');
     return response.data;
   },
 
-  regenerate: async (): Promise<{ message: string; count: number }> => {
-    const response = await dvpApi.post('/projects/generate');
+  resetData: async (): Promise<{ message: string }> => {
+    const response = await dvpApi.post('/reset');
+    return response.data;
+  },
+
+  initDemoData: async (): Promise<{ message: string; project_count: number }> => {
+    const response = await dvpApi.post('/init-demo');
     return response.data;
   },
 };
-
-// ============ 实验组 API ============
 
 export interface Experiment {
   project_id: string;
@@ -97,14 +160,7 @@ export const experimentAPI = {
     const response = await dvpApi.get(`/projects/${projectId}/experiments`);
     return response.data;
   },
-
-  getById: async (projectId: string, experimentId: string): Promise<Experiment> => {
-    const response = await dvpApi.get(`/projects/${projectId}/experiments/${experimentId}`);
-    return response.data;
-  },
 };
-
-// ============ 设备 API ============
 
 export interface Device {
   project_id: string;
@@ -118,11 +174,6 @@ export interface Device {
 export const deviceAPI = {
   getByExperiment: async (projectId: string, experimentId: string): Promise<Device[]> => {
     const response = await dvpApi.get(`/projects/${projectId}/experiments/${experimentId}/devices`);
-    return response.data;
-  },
-
-  getById: async (projectId: string, experimentId: string, deviceId: string): Promise<Device> => {
-    const response = await dvpApi.get(`/projects/${projectId}/experiments/${experimentId}/devices/${deviceId}`);
     return response.data;
   },
 };

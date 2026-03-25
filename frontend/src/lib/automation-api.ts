@@ -13,7 +13,6 @@ const automationApi = axios.create({
   },
 });
 
-// 动态设置 baseURL
 automationApi.interceptors.request.use(async (config) => {
   try {
     const appConfig = await loadConfig();
@@ -23,8 +22,6 @@ automationApi.interceptors.request.use(async (config) => {
   }
   return config;
 });
-
-// ============ 数据类型 ============
 
 export interface AutomationStats {
   total_test_cases: number;
@@ -56,10 +53,27 @@ export interface AutomationMetrics {
   by_period: DailyStats[];
 }
 
-// ============ API 方法 ============
+export interface AutomationProject {
+  id: string;
+  name: string;
+  description?: string;
+  total_test_cases: number;
+  execution_time_hours: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExecutionCreate {
+  project_id?: string;
+  execution_date: string;
+  test_cases: number;
+  execution_time_hours: number;
+  passed_count: number;
+  failed_count: number;
+}
 
 export const automationAPI = {
-  getMetrics: async (period: string = 'day', project?: string): Promise<AutomationMetrics> => {
+  getMetrics: async (period: string = 'month', project?: string): Promise<AutomationMetrics> => {
     const params = new URLSearchParams({ period });
     if (project) params.append('project', project);
     
@@ -72,13 +86,28 @@ export const automationAPI = {
     return response.data;
   },
 
-  getByProject: async (): Promise<ProjectAutomationStats[]> => {
-    const response = await automationApi.get('/by-project');
+  listProjects: async (): Promise<AutomationProject[]> => {
+    const response = await automationApi.get('/projects');
     return response.data;
   },
 
-  getByPeriod: async (period: string = 'day'): Promise<DailyStats[]> => {
-    const response = await automationApi.get(`/by-period?period=${period}`);
+  createProject: async (data: { name: string; description?: string }): Promise<AutomationProject> => {
+    const response = await automationApi.post('/projects', data);
+    return response.data;
+  },
+
+  addExecution: async (data: ExecutionCreate): Promise<any> => {
+    const response = await automationApi.post('/executions', data);
+    return response.data;
+  },
+
+  resetData: async (): Promise<{ message: string }> => {
+    const response = await automationApi.post('/reset');
+    return response.data;
+  },
+
+  initDemoData: async (): Promise<{ message: string; project_count: number; execution_count: number }> => {
+    const response = await automationApi.post('/init-demo');
     return response.data;
   },
 };

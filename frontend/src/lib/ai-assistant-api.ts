@@ -13,7 +13,6 @@ const aiAssistantApi = axios.create({
   },
 });
 
-// 动态设置 baseURL
 aiAssistantApi.interceptors.request.use(async (config) => {
   try {
     const appConfig = await loadConfig();
@@ -23,8 +22,6 @@ aiAssistantApi.interceptors.request.use(async (config) => {
   }
   return config;
 });
-
-// ============ 数据类型 ============
 
 export interface AIActivity {
   name: string;
@@ -51,10 +48,16 @@ export interface AIAssistantMetrics {
   by_period: DailyAIStats[];
 }
 
-// ============ API 方法 ============
+export interface AssistanceRecordCreate {
+  activity_type: string;
+  project_name?: string;
+  description?: string;
+  time_saved_hours?: number;
+  record_date?: string;
+}
 
 export const aiAssistantAPI = {
-  getMetrics: async (period: string = 'day'): Promise<AIAssistantMetrics> => {
+  getMetrics: async (period: string = 'month'): Promise<AIAssistantMetrics> => {
     const response = await aiAssistantApi.get(`/metrics?period=${period}`);
     return response.data;
   },
@@ -64,13 +67,41 @@ export const aiAssistantAPI = {
     return response.data;
   },
 
-  getByActivity: async (): Promise<AIActivity[]> => {
-    const response = await aiAssistantApi.get('/by-activity');
+  listActivityTypes: async (): Promise<string[]> => {
+    const response = await aiAssistantApi.get('/activity-types');
     return response.data;
   },
 
-  getByPeriod: async (period: string = 'day'): Promise<DailyAIStats[]> => {
-    const response = await aiAssistantApi.get(`/by-period?period=${period}`);
+  addActivityType: async (name: string): Promise<{ message: string; name: string }> => {
+    const response = await aiAssistantApi.post('/activity-types', { name });
+    return response.data;
+  },
+
+  listRecords: async (activityType?: string, limit: number = 100): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (activityType) params.append('activity_type', activityType);
+    params.append('limit', String(limit));
+    const response = await aiAssistantApi.get(`/records?${params}`);
+    return response.data;
+  },
+
+  addRecord: async (data: AssistanceRecordCreate): Promise<any> => {
+    const response = await aiAssistantApi.post('/records', data);
+    return response.data;
+  },
+
+  addRecordsBatch: async (records: AssistanceRecordCreate[]): Promise<{ message: string; added_count: number }> => {
+    const response = await aiAssistantApi.post('/records/batch', records);
+    return response.data;
+  },
+
+  resetData: async (): Promise<{ message: string }> => {
+    const response = await aiAssistantApi.post('/reset');
+    return response.data;
+  },
+
+  initDemoData: async (): Promise<{ message: string; record_count: number }> => {
+    const response = await aiAssistantApi.post('/init-demo');
     return response.data;
   },
 };

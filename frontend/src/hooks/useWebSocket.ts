@@ -10,12 +10,16 @@ type WebSocketMessage = {
 };
 
 const MAX_RECONNECT_ATTEMPTS = 10;
+const HEARTBEAT_INTERVAL = 30000; // 30秒
+const OFFLINE_THRESHOLD = 4; // 4次无响应判定离线
 const isDev = process.env.NODE_ENV === 'development';
 
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const missedHeartbeatsRef = useRef(0);
   const [isConnected, setIsConnected] = useState(false);
   const mountedRef = useRef(true);
 
@@ -29,6 +33,7 @@ export function useWebSocket() {
     acknowledgeAlarm,
     setStatistics,
     updateStatisticsFromBenches,
+    benches,
   } = useStore();
 
   const handleMessage = useCallback(
@@ -50,6 +55,15 @@ export function useWebSocket() {
         case 'bench_heartbeat':
           if (data.id && data.status) {
             updateBenchStatus(data.id, data.status);
+            if (data.currentTask !== undefined) {
+              updateBench(data.id, {
+                status: {
+                  ...benches.find(b => b.id === data.id)?.status,
+                  currentTask: data.currentTask,
+                  lastHeartbeat: data.lastHeartbeat
+                } as any
+              });
+            }
             updateStatisticsFromBenches();
           }
           break;
@@ -99,6 +113,10 @@ export function useWebSocket() {
           setStatistics(data);
           break;
 
+        case 'pong':
+          missedHeartbeatsRef.current = 0;
+          break;
+
         default:
           break;
       }
@@ -113,8 +131,27 @@ export function useWebSocket() {
       acknowledgeAlarm,
       setStatistics,
       updateStatisticsFromBenches,
+      benches,
     ]
   );
+
+  const sendHeartbeat = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      missedHeartbeatsRef.current++;
+      
+      if (missedHeartbeatsRef.current >= OFFLINE_THRESHOLD) {
+        if (isDev) console.log('[WS] 心跳超时，标记所有台架离线');
+        benches.forEach(bench => {
+          if (bench.status.state !== 'offline' && bench.status.state !== 'maintenance') {
+            updateBenchStatus(bench.id, { state: 'offline' });
+          }
+        });
+        updateStatisticsFromBenches();
+      } else {
+        wsRef.current.send(JSON.stringify({ event: 'ping', data: {} }));
+      }
+    }
+  }, [benches, updateBenchStatus, updateStatisticsFromBenches]);
 
   const connect = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -133,6 +170,12 @@ export function useWebSocket() {
         if (isDev) console.log('[WS] Connected');
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
+        missedHeartbeatsRef.current = 0;
+        
+        if (heartbeatTimeoutRef.current) {
+          clearInterval(heartbeatTimeoutRef.current);
+        }
+        heartbeatTimeoutRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
       };
 
       ws.onmessage = (event) => {
@@ -147,6 +190,9 @@ export function useWebSocket() {
       ws.onclose = () => {
         setIsConnected(false);
         wsRef.current = null;
+        if (heartbeatTimeoutRef.current) {
+          clearInterval(heartbeatTimeoutRef.current);
+        }
         if (mountedRef.current) {
           scheduleReconnect();
         }
@@ -160,7 +206,7 @@ export function useWebSocket() {
         scheduleReconnect();
       }
     }
-  }, [handleMessage]);
+  }, [handleMessage, sendHeartbeat]);
 
   const scheduleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
@@ -185,6 +231,9 @@ export function useWebSocket() {
     mountedRef.current = false;
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (heartbeatTimeoutRef.current) {
+      clearInterval(heartbeatTimeoutRef.current);
     }
     if (wsRef.current) {
       wsRef.current.close();
