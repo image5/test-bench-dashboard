@@ -38,9 +38,6 @@ Thumbs.db
 # Output files
 *.xlsx
 *.xls
-*.md
-!README.md
-!references/*.md
 
 # Test files
 test_*.py
