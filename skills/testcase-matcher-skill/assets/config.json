@@ -1,0 +1,10 @@
+{
+  "keyword_weights": {},
+  "exclude_patterns": [],
+  "threshold": {
+    "high": 0.6,
+    "medium": 0.4,
+    "low": 0.2
+  },
+  "stop_words": ["的", "了", "在", "是", "有", "和", "与", "或", "等", "中", "为", "以", "及"]
+}
